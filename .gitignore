@@ -3,3 +3,4 @@ token.dat
 ignore/
 /ignore
 log/
+__pycache__
