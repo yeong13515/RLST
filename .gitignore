@@ -3,3 +3,6 @@ token.dat
 ignore/
 /ignore
 log/
+test.py
+/venv
+venv/

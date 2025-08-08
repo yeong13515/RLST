@@ -2,7 +2,6 @@ from koreapi import api, logger
 import os
 import datetime
 
-
 class balance:
     def __init__(self,api, cash_bal, log_name = 'test'):
         self.api = api() #api 호출

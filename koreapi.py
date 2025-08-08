@@ -367,7 +367,7 @@ class api: #api 클래스
         res = requests.get(URL, headers=header, params=params)
         return res.json()['output2']
 
-    def M_STOCK_DATA(self, code, min):
+    def M_STOCK_DATA(self, code, min, date): #마지막날도 함께 출력
         market = self.mm.nasd2nas(self.mm.aapl2nasd(code))
         path = '/uapi/overseas-price/v1/quotations/inquire-time-itemchartprice'
         URL = f"{self.url_base}/{path}"
@@ -381,13 +381,13 @@ class api: #api 클래스
                 "SYMB":code,
                 "NMIN":min,
                 "PINC":"1",
-                "NEXT":"",
+                "NEXT":"1",
                 "NREC":"120",
                 "FILL":"",
-                "KEYB":""
+                "KEYB": date
                 }
         res = requests.get(URL, headers=header, params=params)
-        print(res.json())
+        #print(res.json())        
         return res.json()['output2']
 
     def D_INDEX_DATA(self, code, start, end):
