@@ -6,3 +6,4 @@ log/
 test.py
 /venv
 venv/
+__pycache__
