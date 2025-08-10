@@ -1,80 +1,95 @@
-from koreapi import api, logger
+from koreapi import korea_api, logger
 import os
 import datetime
+import pandas as pd
+import csv
 
 class balance:
-    def __init__(self,api, cash_bal, log_name = 'test'):
-        self.api = api() #api 호출
-        self.stock_bal = {} #주식 잔고
-        self.cash_bal = cash_bal # 현금잔고
+    def __init__(self, name, initial_cash,api=korea_api(), logger=logger()):
+        '''
+        구현 목표
+
+        0. 가상 주식 계좌로 여러 모델을 한 계좌에서 돌리기 위함. 
+
+        1. stock holding & cash 현황
+        2. trading log
+
+        '''
+        #의존
+        self.api = api #api 호출
+        self.logger = logger
+        self.name = name
+
+        #log
+        self.columns = ['timestamp', 'type', 'symbol', 'qty', 'price', 'tax', 'pnl']
+        self.csv_path = f'log/bal/{self.name}'
+        self.file_path = os.path.join(self.csv_path, f'{self.name}_log.csv')
+        self._initialize_csv()
+
+        #가상 계좌 기본 설정
+        self.stock_bal = {'AAPL': {'qty': 10, 'avg_price': 150.0}} #stock balance
+        self.cash_bal = float(initial_cash) # cash balance
         self.tax = 0.0009  #거래 수수료
-        self.log = []
-        self.log_dir = f'log/bal/{log_name}'
-        self.logger = logger()
+        self.pnl = 0.0
+
+    def buy(self, code, qty, price): #주식 사고 팔기
+        #일반 계좌에 팔 수 있나 확인
+        #아니면 오류
+
+        if self.cash_bal > qty*price:
+            self.api.sell(code, qty, price)
+        
+        return 0
+
+    def sell(self, code, qty, price):
+        if self.stock_bal[code]['qty'] > qty:
+            if self.api.sell(code, qty, price):
+                
+
+        return 0
     
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+    def total_value(self):
+        stock_val = 0
+        for symbol, data in self.stock_bal.items():
+            stock_val += data['qty'] * self.api.current_price(symbol)
+        return stock_val + self.cash_bal
+    
+    def unreal_pnl(self, ):
+        return 0
+    
 
-    def make_log(self, code, price, qty, type):
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        msg = f"""{now} {code} ${price:.2f} {qty}주 {type} ${self.cash_bal:.2f} {self.format()}, ${self.total_val():.2f}"""  
-        self.logger.send_dico(f"""{code} ${price:.2f} {qty}주 {type} ${self.cash_bal:.2f} {self.format()}, ${self.total_val():.2f}""")
-        now = datetime.datetime.now().strftime('%Y-%m-%d')
-        with open(f"{self.log_dir}/log{now}.txt", 'a') as f:
-            f.write(msg + '\n')
+    #로그 처리 부분
+    def _initialize_csv(self, ):
+        if not os.path.exists(self.csv_path):
+            os.makedirs(self.csv_path)
 
-    def make_csv(self, code, qty, price, type):
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        msg = f"{now}, {code}, {qty}, {price}, {type}, {self.cash_bal}, "
-        with open(f"{self.log_dir}/scv.txt", 'a') as f:
-            f.write(msg + '\n')
+        if not os.path.exists(self.file_path):
+            with open(self.file_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(self.columns)
 
-    def buy_update(self, code, qty, price):
-        if code in self.stock_bal:
-            self.stock_bal[code]['qty'] += qty #매수 개수
-            self.stock_bal[code]['price'] = price # 매수 가격
-        else:
-            self.stock_bal[code] = {'qty': qty, 'price': price}
-        self.cash_bal -= price * qty * (1+self.tax) #현금 차감 +수수료
-        self.make_log(code, price, qty, 'buy')
+    def _add_log(self, type, code, qty, price, tax, pnl=0.0):
+        log_data = [
+            datetime.datetime.now().isoformat(),
+            type,
+            code,
+            qty,
+            price,
+            tax,
+            pnl
+        ]
 
-    def sell_update(self, code, qty, price):      
-        if self.stock_bal[code]['qty'] >= qty:
-            self.stock_bal[code]['qty'] -= qty #매도 개수
-            self.stock_bal[code]['price'] = price # 매도 가격
-            self.cash_bal += price * qty * (1-self.tax) #현금 차감 +수수료
-        if self.stock_bal[code]['qty'] == 0:
-            del self.stock_bal[code]
-        self.make_log(code, price, qty, 'sell')
+        with open(self.file_path, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(log_data)
+        self.logger.send_dico(log_data)
 
-    def buy_stock(self, code, qty, price):        
-        if self.cash_bal < price * qty * (1+self.tax):
-            self.make_log(code, qty, price, 'fail_egh')
-        else: # 매수 실행
-            
-            result = 0 #self.api.buy(code, qty, price) #삭제
-            if result == 0:
-                self.buy_update(code, qty, price)
-            else:
-                self.make_log(code, qty, price, 'fail_api')
 
-    def sell_stock(self, code, qty, price):
-        if code not in self.stock_bal or self.stock_bal[code]['qty'] < qty: #잔고 확인
-            self.make_log(code, qty, price, 'fail_qty')
-            return 
-        # 매도 실행
-        result = 0# self.api.sell(code, qty, price)
-        if result == 0:
-            self.sell_update(code, qty, price)
-        else:
-            self.make_log(code, qty, price, 'fail_api')
 
-    def total_val(self):
-        #total_stock = sum(self.api.current_price(code) * qty['qty'] for code, qty in self.stock_bal.items())
-        total_stock = sum(9 * qty['qty'] for code, qty in self.stock_bal.items()) #삭제할것
-        total_val = total_stock + self.cash_bal
-        return total_val
 
-    def format(self):
-        return ", ".join(f"{stock}: {details['qty']}주" for stock, details in self.stock_bal.items())
+if __name__=="__main__":
+    model_a = balance(name='model_a', initial_cash=10000)
+    
+    model_a._add_log('sell','aapl',3,100,1,1) # 거래 발생 시 빠르게 기록
 
+    model_a.buy(1,1,1)

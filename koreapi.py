@@ -48,7 +48,7 @@ class logger:
         requests.post(self.webhook_url, data=message)
         print(message)
 
-class api: #api 클래스
+class korea_api: #api 클래스
     def __init__(self, config_path='ignore/config.yaml', token_path='ignore/token.dat'):
         self.load_config(config_path)
         self.token_path = token_path
@@ -113,7 +113,8 @@ class api: #api 클래스
         res = requests.post(url, headers=headers, data=json.dumps(data))
         return res.json()["HASH"]
 
-    def current_price(self, market, code):
+    def current_price(self, code):
+        market = self.mm.aapl2nasd(code)
         path = "/uapi/overseas-price/v1/quotations/price"
         url = f"{self.url_base}/{path}"
         headers = {
@@ -124,6 +125,7 @@ class api: #api 클래스
         }
         params = {"AUTH": "", "EXCD": market, "SYMB": code}
         res = requests.get(url, headers=headers, params=params)
+        print(res.json())
         self.logger.send_dico(f"[현재가] {code} : {res.json()['output']['last']} ")
         return float(res.json()['output']['last'])
 
@@ -155,7 +157,7 @@ class api: #api 클래스
             self.logger.send_dico(f"[매수 실패]{str(res.json()['msg1'])}")
             return 1
 
-    def sell(self, market, code, qty, price):
+    def sell(self, code, qty, price):
         market = self.mm.aapl2nasd(code)
         path = "uapi/overseas-stock/v1/trading/order"
         URL = f"{self.url_base}/{path}"
@@ -419,7 +421,7 @@ class api: #api 클래스
 
 
 if __name__=="__main__":
-    test = api()
+    test = korea_api()
     print(test.D_INDEX_DATA('.DJT', 20200101))
     
 

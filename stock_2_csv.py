@@ -1,4 +1,4 @@
-from koreapi import api, logger
+from koreapi import korea_api, logger
 import os
 import pandas as pd
 from datetime import datetime, timedelta
@@ -14,9 +14,9 @@ class stock_data_loader:
     load_index_data : 일 단위 index
     '''
 
-    def __init__ (self):
-        self.api = api()
-        self.logger = logger()
+    def __init__ (self, api=korea_api(), logger = logger()):
+        self.api = api
+        self.logger = logger
     
     def load_m_data(self, code, min = 1, tick=False):
         '''
