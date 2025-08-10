@@ -44,7 +44,7 @@ class balance:
     def sell(self, code, qty, price):
         if self.stock_bal[code]['qty'] > qty:
             if self.api.sell(code, qty, price):
-                
+                return 0
 
         return 0
     
