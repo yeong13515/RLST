@@ -7,3 +7,4 @@ test.py
 /venv
 venv/
 __pycache__
+data/

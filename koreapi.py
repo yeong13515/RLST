@@ -365,9 +365,13 @@ class api: #api 클래스
                 "MODP" : "1"
                 }
         res = requests.get(URL, headers=header, params=params)
-        return res.json()['output2']
+        
+        if 'output2' in res.json():
+            return res.json()['output2']
+        else:
+            return None
 
-    def M_STOCK_DATA(self, code, min, date): #마지막날도 함께 출력
+    def M_STOCK_DATA(self, code, min, date):
         market = self.mm.nasd2nas(self.mm.aapl2nasd(code))
         path = '/uapi/overseas-price/v1/quotations/inquire-time-itemchartprice'
         URL = f"{self.url_base}/{path}"
@@ -387,10 +391,13 @@ class api: #api 클래스
                 "KEYB": date
                 }
         res = requests.get(URL, headers=header, params=params)
-        #print(res.json())        
-        return res.json()['output2']
+        #print(res.json())
+        if 'output2' in res.json():
+            return res.json()['output2']
+        else:
+            return None
 
-    def D_INDEX_DATA(self, code, start, end):
+    def D_INDEX_DATA(self, code, end):
         path = '/uapi/overseas-price/v1/quotations/inquire-daily-chartprice'
         URL = f"{self.url_base}/{path}"
         header = {"authorization":f"Bearer {self.access_token}",
@@ -400,13 +407,21 @@ class api: #api 클래스
         params = {"FID_INPUT_ISCD" : code,
                 "FID_COND_MRKT_DIV_CODE" : "N",
                 "FID_PERIOD_DIV_CODE" : "D",
-                "FID_INPUT_DATE_1" : start,
-                "FID_INPUT_DATE_2" : end
+                "FID_INPUT_DATE_1" : end,
+                "FID_INPUT_DATE_2" : ""  #start 쓸수도 있음
                 }
         res = requests.get(URL, headers=header, params=params)
-        return res.json()['output2']
+        #print(res.json())
+        if 'output2' in res.json():
+            return res.json()['output2']
+        else:
+            return None
 
 
+if __name__=="__main__":
+    test = api()
+    print(test.D_INDEX_DATA('.DJT', 20200101))
+    
 
 # 생각노트
 # 각 계좌별 구매 code 후보에 따른 marketmanager 추가

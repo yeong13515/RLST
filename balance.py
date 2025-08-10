@@ -29,7 +29,6 @@ class balance:
         with open(f"{self.log_dir}/scv.txt", 'a') as f:
             f.write(msg + '\n')
 
-
     def buy_update(self, code, qty, price):
         if code in self.stock_bal:
             self.stock_bal[code]['qty'] += qty #매수 개수
