@@ -106,7 +106,6 @@ class korea_api: #api 클래스
         path = "uapi/hashkey"
         url = f"{self.url_base}/{path}"
         headers = {
-            'content-Type': 'application/json',
             'appKey': self.app_key,
             'appSecret': self.app_secret,
         }
@@ -114,7 +113,7 @@ class korea_api: #api 클래스
         return res.json()["HASH"]
 
     def current_price(self, code):
-        market = self.mm.aapl2nasd(code)
+        market = self.mm.nasd2nas(self.mm.aapl2nasd(code))
         path = "/uapi/overseas-price/v1/quotations/price"
         url = f"{self.url_base}/{path}"
         headers = {
@@ -125,7 +124,6 @@ class korea_api: #api 클래스
         }
         params = {"AUTH": "", "EXCD": market, "SYMB": code}
         res = requests.get(url, headers=headers, params=params)
-        print(res.json())
         self.logger.send_dico(f"[현재가] {code} : {res.json()['output']['last']} ")
         return float(res.json()['output']['last'])
 
@@ -422,8 +420,8 @@ class korea_api: #api 클래스
 
 if __name__=="__main__":
     test = korea_api()
-    print(test.D_INDEX_DATA('.DJT', 20200101))
     
+    test.current_price('AAPL')
 
 # 생각노트
 # 각 계좌별 구매 code 후보에 따른 marketmanager 추가
