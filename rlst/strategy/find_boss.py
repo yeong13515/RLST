@@ -3,7 +3,7 @@ import pandas as pd
 import rlst.strategy.find_boss as find_boss
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import OPTICS
-
+import numpy as np
 
 from rlst.core.koreapi import korea_api
 
@@ -57,20 +57,20 @@ class find_boss_stock(Strategy):
             'volatility_6m': volatility_6m,
             'mdd_6m': mdd_6m,
         }
-
-        feature_vector.update(self.api.fundamental(code))
-
+        
+        fund = self.api.fundamental(code)
+        if fund['per'] == 0:
+            return None
+        
+        feature_vector.update(fund)
         return feature_vector
 
     def scale_optics(self, codes: list, features: pd.DataFrame) -> pd.DataFrame:
-        test_df = pd.read_csv('data/raw/d_csv/AAPL_data.csv')
-        pre_aapl = self.preprocessing('AAPL',test_df)
 
         scaler = StandardScaler()
         scaled_features = scaler.fit_transform(features)
         print("클러스터링에 입력되는 데이터 크기:", scaled_features.shape)
 
-        print(scaled_features)
         clusterer = OPTICS(min_samples=3) 
         clusterer.fit(scaled_features)
 
@@ -78,8 +78,23 @@ class find_boss_stock(Strategy):
         labels = clusterer.labels_
         print(labels)
         
-        for i, code in enumerate(codes):
-            
+        averages_by_label = {}
+
+        # 3. 고유한 라벨들을 찾아서 순회
+        unique_labels = np.unique(labels)
+
+        for label in unique_labels:
+            average_features = features[labels == label].mean(axis=0)
+
+            # 5. 딕셔너리에 결과 저장
+            averages_by_label[label] = average_features
+
+        # 6. 결과 출력
+        for label, avg_features in averages_by_label.items():
+            print(f"--- 라벨 {label}의 피처 평균 ---")
+            print(avg_features)
+            print("\n")
+
         return 0
 
     def generate_signals(self, candidate_list, d_m, data):

@@ -138,11 +138,11 @@ class korea_api: #api 클래스
         res = requests.get(url, headers=headers, params=params)
         data = res.json()
         output = {
-            #'tomv' : data['output']['tomv'],
-            'per' : data['output']['perx'],
-            'pbr' : data['output']['pbrx'],
-            'eps' : data['output']['epsx'],
-            'bps' : data['output']['bpsx'],
+            #'tomv' : float(data['output']['tomv']),
+            'per' : float(data['output']['perx']),
+            'pbr' : float(data['output']['pbrx']),
+            'eps' : float(data['output']['epsx']),
+            'bps' : float(data['output']['bpsx']),
         }
 
         self.logger.send_dico(f"[fundamental] {code} : {output}")

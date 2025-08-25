@@ -15,30 +15,29 @@ if __name__=="__main__":
     #data_loader.load_m_data('MAMA', tick=True)
 
 
-    codes =  [
-    'RVPH', 'CNSP', 'TNYA', 'LTRYW', 'PCH', 'PDBC', 'HWBK', 'BRTR', 'FGFPP',
-    'TMC', 'TUG', 'GRABW', 'CISO', 'TCBX', 'FRSH', 'BSJP', 'SBCF', 'VTWG',
-    'KRT', 'GGLS', 'TCX', 'FLGC', 'HSAI', 'ALNT', 'BLTE', 'CASS', 'USCB',
-    'FENC', 'WASH', 'LVO', 'SNSE', 'USIO', 'CUB', 'ZJYL', 'WERN', 'EBI',
-    'SOHU', 'NTRSO', 'BSCW', 'SRPT', 'XFOR', 'CGNX', 'CRBU', 'EGAN', 'VIGI',
-    'RDI', 'MRAM', 'TCBI', 'RILY', 'ASNS', 'CHCO', 'CRON', 'MLGO', 'CHSN',
-    'PT', 'ATRC', 'LPCN', 'USXF', 'LEGN', 'USLM', 'TIGR', 'MTEK', 'SBC',
-    'NNE', 'KFFB', 'BHFAL', 'PUI', 'CUBWU', 'CNET', 'BL', 'GCT', 'ACET',
-    'BHRB', 'KMB', 'GRIN', 'CTKB', 'WAVE', 'CSBR', 'ACMR', 'CING', 'ADIL',
-    'JOUT', 'EPRX', 'STAA', 'FSLR', 'ACDC', 'CSX', 'PDEX', 'VTHR', 'BGLC',
-    'CRCT', 'ADVM', 'RNAC', 'LIF', 'ADTX', 'PECO', 'FIVY', 'LRE', 'USVM',
-    'TNON',]
+    codes = [
+    'ASRT', 'SYNA', 'CRBP', 'STIM', 'CDW', 'EGAN', 'VFF', 'ADSE', 'PCH',
+    'TCBX', 'EBIZ', 'RDI', 'STRL', 'XCUR', 'CNOB', 'CABA', 'WVE', 'CTKB',
+    'CRBU', 'TARS', 'VTVT', 'REAX', 'ATEX', 'NTRB', 'ADAG', 'SBCF', 
+    'JOUT', 'EPRX', 'NEXM', 'CSGP', 'BHF', 'CHCI', 'SNT', 'FTEL',
+    'CLAR', 'BMRN', 'ASLE', 'BFC', 'WINT', 'CNET', 'VRA', 'BFC', 'WINT',
+    'CUB', 'ZJYL', 'WERN', 'EBI', 'SOHU', 'NTRSO', 'BSCW', 'SRPT', 'XFOR',
+    'CGNX', 'CRBU', 'EGAN', 'VIGI', 'RDI', 'MRAM', 'TCBI', 'RILY', 'ASNS',
+    'CHCO', 'CRON', 'MLGO', 'CHSN', 'PT', 'ATRC', 'LPCN', 'USXF', 'LEGN',
+    'USLM', 'TIGR', 'MTEK', 'SBC', 'NNE', 'KFFB', 'BHFAL', 'PUI', 'CUBWU',
+    'CNET', 'BL', 'GCT', 'ACET', 'BHRB', 'KMB', 'GRIN', 'CTKB', 'WAVE',
+    'CSBR', 'ACMR', 'CING', 'ADIL', 'JOUT', 'EPRX', 'STAA', 'FSLR', 'ACDC',
+    'CSX', 'PDEX', 'VTHR', 'BGLC'
+]
 
-    #for code in codes:
-    #    data_loader.load_d_data(f'{code}')
+    # for code in codes:
+    #     data_loader.load_d_data(f'{code}')
 
     total_list = []
     for code in codes:
         temp = find_boss.preprocessing(code, pd.read_csv(f"data/raw/d_csv/{code}_data.csv"))
         if temp != None:
             total_list.append(temp)
-
-    print(total_list)
 
     total_df = pd.DataFrame(total_list)
     print(total_df)
