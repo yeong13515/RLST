@@ -1,14 +1,7 @@
-config.yaml
-token.dat
 ignore/
-/ignore
 logs/
-/logs
 test.py
 test.txt
-/venv
 venv/
-__pycache__
+__pycache__/
 data/
-temp.py
-temp.txt
