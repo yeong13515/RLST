@@ -5,7 +5,10 @@ ignore/
 logs/
 /logs
 test.py
+test.txt
 /venv
 venv/
 __pycache__
 data/
+temp.py
+temp.txt
