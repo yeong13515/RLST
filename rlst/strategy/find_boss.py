@@ -59,18 +59,17 @@ class find_boss_stock(Strategy):
         }
         
         fund = self.api.fundamental(code)
-        if fund['per'] == 0:
+        if fund['per'] == 0 or fund['pbr'] == 0:
             return None
-        
         feature_vector.update(fund)
         return feature_vector
 
     def scale_optics(self, codes: list, features: pd.DataFrame) -> pd.DataFrame:
-
+        #정규화
         scaler = StandardScaler()
         scaled_features = scaler.fit_transform(features)
-        print("클러스터링에 입력되는 데이터 크기:", scaled_features.shape)
 
+        #그룹화
         clusterer = OPTICS(min_samples=3) 
         clusterer.fit(scaled_features)
 
@@ -79,29 +78,57 @@ class find_boss_stock(Strategy):
         print(labels)
         
         averages_by_label = {}
-
-        # 3. 고유한 라벨들을 찾아서 순회
         unique_labels = np.unique(labels)
 
         for label in unique_labels:
             average_features = features[labels == label].mean(axis=0)
-
-            # 5. 딕셔너리에 결과 저장
             averages_by_label[label] = average_features
 
-        # 6. 결과 출력
-        for label, avg_features in averages_by_label.items():
-            print(f"--- 라벨 {label}의 피처 평균 ---")
-            print(avg_features)
-            print("\n")
-
-        return 0
-
-    def generate_signals(self, candidate_list, d_m, data):
+        analysis_df = pd.DataFrame(averages_by_label).transpose().drop(index=-1, errors='ignore')
         
+        #그룹 순위 생성
+        # A: 모멘텀 강도 (Momentum Strength)
+        analysis_df['A_momentum_strength'] =(analysis_df['return_1m'] * 0.3)+ (analysis_df['return_3m'] * 0.3) + (analysis_df['return_6m'] * 0.3)
+
+        # B: 모멘텀 안정성 (Momentum Stability) - 변동성이 0에 가까운 경우를 대비해 작은 값(epsilon)을 더함
+        epsilon = 1e-6 
+        analysis_df['B_momentum_stability'] = 1 / (analysis_df['volatility_6m'] + epsilon)
+
+        # C: 리스크 관리 (Risk Management) - MDD가 0인 경우를 대비
+        analysis_df['C_risk_management'] = 1 / (abs(analysis_df['mdd_6m']) + epsilon)
+
+        # --- 2단계: 각 지표별 순위(Rank) 부여 ---
+        # 값이 높을수록 좋은 지표이므로, rank의 ascending=False 옵션을 사용 (높은 값이 1등)
+        analysis_df['rank_A'] = analysis_df['A_momentum_strength'].rank(ascending=False)
+        analysis_df['rank_B'] = analysis_df['B_momentum_stability'].rank(ascending=False)
+        analysis_df['rank_C'] = analysis_df['C_risk_management'].rank(ascending=False)
+
+        # --- 3단계: 최종 스코어 계산 ---
+        weights = {'A': 0.5, 'B': 0.3, 'C': 0.2}
+        analysis_df['final_score'] = (analysis_df['rank_A'] * weights['A']) +(analysis_df['rank_B'] * weights['B']) + (analysis_df['rank_C'] * weights['C'])
+
+        # --- 4단계: 최종 스코어 기준으로 정렬 ---
+        # 점수가 낮을수록 좋은 그룹이므로, 오름차순(ascending=True)으로 정렬
+        ranked_groups = analysis_df.sort_values(by='final_score', ascending=True)
+        ranked_list = ranked_groups.iloc[:3].index.to_list()
+
+        group_1 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[0]]
+        group_2 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[1]]
+        group_3 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[2]]
+        
+        print(ranked_groups)
+        print(codes)
+        print(group_1)
+        print(group_2)
+        print(group_3)
+
+        return ranked_groups
+    
+
+
+    def generate_signals(self,candidate_list, data: pd.DataFrame) -> dict:
 
         return 0
-    
     
 
 
