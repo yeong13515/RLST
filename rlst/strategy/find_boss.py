@@ -50,6 +50,7 @@ class find_boss_stock(Strategy):
         mdd_6m = drawdown_6m.min()
 
         feature_vector = {
+            'code':code,
             'return_1m': return_1m,
             'return_3m': return_3m,
             'return_6m': return_6m,
@@ -57,79 +58,91 @@ class find_boss_stock(Strategy):
             'volatility_6m': volatility_6m,
             'mdd_6m': mdd_6m,
         }
-        
-        fund = self.api.fundamental(code)
-        if fund['per'] == 0 or fund['pbr'] == 0:
-            return None
-        feature_vector.update(fund)
+
         return feature_vector
 
-    def scale_optics(self, codes: list, features: pd.DataFrame) -> pd.DataFrame:
+    def scale_optics(self, features: pd.DataFrame) -> pd.DataFrame:
         #정규화
-        scaler = StandardScaler()
-        scaled_features = scaler.fit_transform(features)
+        numeric_features = features.select_dtypes(include=np.number)
 
-        #그룹화
-        clusterer = OPTICS(min_samples=3) 
+        scaler = StandardScaler()
+        scaled_features = scaler.fit_transform(numeric_features)
+
+        clusterer = OPTICS(min_samples=5) # min_samples는 데이터에 맞게 조정
         clusterer.fit(scaled_features)
 
-        # 결과 확인
-        labels = clusterer.labels_
-        print(labels)
-        
-        averages_by_label = {}
-        unique_labels = np.unique(labels)
+        features['cluster'] = clusterer.labels_
 
-        for label in unique_labels:
-            average_features = features[labels == label].mean(axis=0)
-            averages_by_label[label] = average_features
-
-        analysis_df = pd.DataFrame(averages_by_label).transpose().drop(index=-1, errors='ignore')
-        
-        #그룹 순위 생성
         # A: 모멘텀 강도 (Momentum Strength)
-        analysis_df['A_momentum_strength'] =(analysis_df['return_1m'] * 0.3)+ (analysis_df['return_3m'] * 0.3) + (analysis_df['return_6m'] * 0.3)
+        features['rank_A'] =(features['return_1m'] * 0.3)+ (features['return_3m'] * 0.3) + (features['return_6m'] * 0.3)
 
-        # B: 모멘텀 안정성 (Momentum Stability) - 변동성이 0에 가까운 경우를 대비해 작은 값(epsilon)을 더함
+        # B: 모멘텀 안정성 (Momentum Stability)
         epsilon = 1e-6 
-        analysis_df['B_momentum_stability'] = 1 / (analysis_df['volatility_6m'] + epsilon)
+        features['rank_B'] = 1 / (features['volatility_6m'] + epsilon)
 
         # C: 리스크 관리 (Risk Management) - MDD가 0인 경우를 대비
-        analysis_df['C_risk_management'] = 1 / (abs(analysis_df['mdd_6m']) + epsilon)
+        features['rank_C'] = 1 / (abs(features['mdd_6m']) + epsilon)
 
-        # --- 2단계: 각 지표별 순위(Rank) 부여 ---
-        # 값이 높을수록 좋은 지표이므로, rank의 ascending=False 옵션을 사용 (높은 값이 1등)
-        analysis_df['rank_A'] = analysis_df['A_momentum_strength'].rank(ascending=False)
-        analysis_df['rank_B'] = analysis_df['B_momentum_stability'].rank(ascending=False)
-        analysis_df['rank_C'] = analysis_df['C_risk_management'].rank(ascending=False)
-
-        # --- 3단계: 최종 스코어 계산 ---
         weights = {'A': 0.5, 'B': 0.3, 'C': 0.2}
-        analysis_df['final_score'] = (analysis_df['rank_A'] * weights['A']) +(analysis_df['rank_B'] * weights['B']) + (analysis_df['rank_C'] * weights['C'])
-
-        # --- 4단계: 최종 스코어 기준으로 정렬 ---
-        # 점수가 낮을수록 좋은 그룹이므로, 오름차순(ascending=True)으로 정렬
-        ranked_groups = analysis_df.sort_values(by='final_score', ascending=True)
-        ranked_list = ranked_groups.iloc[:3].index.to_list()
-
-        group_1 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[0]]
-        group_2 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[1]]
-        group_3 = [ticker for ticker, index in zip(codes, labels) if index == ranked_list[2]]
+        features['final_score'] = (features['rank_A'] * weights['A']) +(features['rank_B'] * weights['B']) + (features['rank_C'] * weights['C'])
         
-        print(ranked_groups)
-        print(codes)
-        print(group_1)
-        print(group_2)
-        print(group_3)
+        features = features.sort_values(by='cluster').sort_values(by='final_score', ascending=True)
+        features = features[['code','cluster','final_score']]
+        return features
 
-        return ranked_groups
+
+    def code_signals(self, features: pd.DataFrame) -> dict:
+        mean_list = features.groupby('cluster')['final_score'].mean().sort_values().index.to_list()
+        if -1 in mean_list :
+            mean_list.remove(-1)
+        
+        print(mean_list)
+        candidae_dict = {}
+        for i in range(len(mean_list)):
+            candidae_dict[i] = features[features['cluster'] == mean_list[i]]
+            print(candidae_dict[i])
+        return candidae_dict
     
 
+    def run(self, fund_dict:dict):
+        '''find_boss를 사용하고 싶으면 이거 하나 딸깍으로 만들어야할까?
+        리턴은 balance 업데이트 용.
+        '''
+        total_list = []
+        for code in fund_dict:
+            #종목 별 features 추출
+            pre_temp = self.preprocessing(code, pd.read_csv(f"data/raw/d_csv/{code}_data.csv"))
+            pre_fund = fund_dict[code]
+            
+            if pre_temp != None and pre_fund!= None:
+                pre_temp.update(pre_fund)
+                total_list.append(pre_temp)
 
-    def generate_signals(self,candidate_list, data: pd.DataFrame) -> dict:
+        total_df = self.scale_optics(pd.DataFrame(total_list))
+        print(total_df)
+        total_candi_dict = self.code_signals(total_df)
 
-        return 0
-    
+        final_candi_list = []
 
+        # 1. 최소 2개의 그룹이 있는지 확인
+        if len(total_candi_dict) >= 2:
+            group1_df = total_candi_dict[0]
+            num_stocks_g1 = len(group1_df)
+            top_stocks_g1 = group1_df[:min(num_stocks_g1, 3)]['code'].to_list()
+            final_candi_list.extend(top_stocks_g1)
 
-    
+            group2_df = total_candi_dict[1]
+            num_stocks_g2 = len(group2_df)
+            top_stocks_g2 = group2_df[:min(num_stocks_g2, 2)]['code'].to_list()
+            final_candi_list.extend(top_stocks_g2)
+            
+        else:
+            print('후보 미구성')
+            return None
+        
+        weights = {}
+        for code in final_candi_list:
+            weights[code] = 1/len(final_candi_list)
+        print(weights)
+
+        return weights

@@ -5,6 +5,16 @@ from rlst.strategy.find_boss import find_boss_stock
 
 import pandas as pd
 
+def fundamental(codes:list):
+    fund_dict = {}
+    for code in codes:
+        fund = api.fundamental(code)
+        if fund['per'] != 0 and fund['pbr'] != 0:
+            fund_dict[code] = fund
+    return fund_dict
+
+
+
 if __name__=="__main__":
     api = korea_api()
     find_boss = find_boss_stock()
@@ -554,22 +564,14 @@ if __name__=="__main__":
 
     import random
     random.seed(42)
-    codes = random.sample(codes, 200)
-
+    codes = random.sample(codes, 10)
+    
     #for code in codes:
-    #    data_loader.load_d_data(f'{code}')
+        #    data_loader.load_d_data(f'{code}')
+    
+    fund_dict = fundamental(codes)
+    find_boss_dict = find_boss.run(fund_dict)
 
-    total_list = []
-    rea_code  = []
-    for code in codes:
-        temp = find_boss.preprocessing(code, pd.read_csv(f"data/raw/d_csv/{code}_data.csv"))
-        if temp != None:
-            total_list.append(temp)
-            rea_code.append(code)
-
-    total_df = pd.DataFrame(total_list)
-
-    find_boss.scale_optics(rea_code, total_df)
 
     # test.current_price('AAPL')
     # test.fundamental('AAPL')
@@ -582,7 +584,3 @@ if __name__=="__main__":
     # print(model_a.total_value())
     # print(model_a.unreal_pnl())
     # model_a.sell('AAPL',3,200)
-
-
-
-    

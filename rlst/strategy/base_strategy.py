@@ -8,7 +8,7 @@ class Strategy(ABC):
         self.name = name
 
     @abstractmethod
-    def generate_signals(self, data: pd.DataFrame) -> dict:
+    def code_signals(self, data: pd.DataFrame) -> dict:
         """
         주어진 데이터를 바탕으로 투자 비중을 결정하는 핵심 로직.
         - data: 종목별 특징 벡터가 포함된 DataFrame

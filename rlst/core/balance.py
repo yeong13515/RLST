@@ -112,4 +112,7 @@ class balance:
         with open(f'{self.bal_json_path}', 'w', encoding='utf-8') as f:
             json.dump(self.stock_bal, f, indent=4, ensure_ascii=False)
 
+    def balance_status(self):
+        return self.stock_bal
+
 
